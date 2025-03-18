@@ -123,6 +123,7 @@ func inletStart(r *reporter.Reporter, config InletConfiguration, checkOnly bool)
 	}
 	routingComponent, err := routing.New(r, config.Routing, routing.Dependencies{
 		Daemon: daemonComponent,
+		HTTP:   httpComponent,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to initialize routing component: %w", err)
