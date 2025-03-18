@@ -4,6 +4,7 @@
 package routing
 
 import (
+	"fmt"
 	"net/http"
 	"net/netip"
 
@@ -13,18 +14,30 @@ import (
 )
 
 type routeParameters struct {
-	ip    netip.Addr `form:"ip"`
-	nh    netip.Addr `form:"next_hop"`
-	agent netip.Addr `form:"agent"`
+	IP string `form:"ip"`
 }
 
-// RoutesHTTPHandler looks up a route and sends it as JSON
-func (c *Component) RoutesHTTPHandler(gc *gin.Context) {
+// RouteHTTPHandler looks up a route and sends it as JSON
+func (c *Component) RouteHTTPHandler(gc *gin.Context) {
 	var params routeParameters
 	if err := gc.ShouldBindQuery(&params); err != nil {
 		gc.JSON(http.StatusBadRequest, gin.H{"message": helpers.Capitalize(err.Error())})
 		return
 	}
 
-	gc.JSON(200, "test")
+	ip, err := netip.ParseAddr(params.IP)
+	if err != nil {
+		gc.JSON(500, gin.H{"error": fmt.Sprintf("failed to parse ip %s: %v", params.IP, err)})
+		return
+	}
+	if ip.Is4() {
+		ip = netip.AddrFrom16(ip.As16())
+	}
+
+	result, err := c.provider.LookupRoutes(ip)
+	if err != nil {
+		gc.JSON(404, gin.H{"error": fmt.Sprintf("failed to look up %s: %v", ip.String(), err)})
+		return
+	}
+	gc.JSON(200, result)
 }

@@ -64,7 +64,7 @@ func (c *Component) Start() error {
 		}
 	}
 
-	c.d.HTTP.GinRouter.GET("/api/v0/inlet/routes", c.RoutesHTTPHandler)
+	c.d.HTTP.GinRouter.GET("/api/v0/inlet/route", c.RouteHTTPHandler)
 	return nil
 }
 

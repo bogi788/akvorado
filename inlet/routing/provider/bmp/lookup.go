@@ -78,3 +78,40 @@ func (p *Provider) Lookup(_ context.Context, ip netip.Addr, nh netip.Addr, _ net
 		NextHop:          nh,
 	}, nil
 }
+
+// LookupRoutes looks up all routes for the provided IP address.
+func (p *Provider) LookupRoutes(ip netip.Addr) ([]LookupResult, error) {
+	if !p.config.CollectASNs && !p.config.CollectASPaths && !p.config.CollectCommunities {
+		return []LookupResult{}, nil
+	}
+	if !p.active.Load() {
+		return []LookupResult{}, nil
+	}
+	v6 := patricia.NewIPv6Address(ip.AsSlice(), 128)
+
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	result := []LookupResult{}
+	for _, route := range p.rib.tree.FindTags(v6) {
+		attributes := p.rib.rtas.Get(route.attributes)
+
+		// The next hop is updated from the rib in every case, because the user
+		// "opted in" for bmp as source if the lookup result is evaluated
+		nh := netip.Addr(p.rib.nextHops.Get(route.nextHop))
+
+		result = append(result, LookupResult{
+			ASN:              attributes.asn,
+			ASPath:           attributes.asPath,
+			Communities:      attributes.communities,
+			LargeCommunities: attributes.largeCommunities,
+			NetMask:          attributes.plen,
+			NextHop:          nh,
+		})
+	}
+
+	if len(result) == 0 {
+		return nil, errNoRouteFound
+	}
+	return result, nil
+}

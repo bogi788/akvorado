@@ -37,6 +37,7 @@ var (
 	errNoRouteFound   = errors.New("no route found")
 	errNoPathFound    = errors.New("no path found")
 	errInvalidNextHop = errors.New("invalid next hop")
+	errNotSupported   = errors.New("not supported")
 )
 
 // RISInstanceRuntime represents all connections to a single RIS
@@ -213,6 +214,11 @@ func (p *Provider) Lookup(ctx context.Context, ip netip.Addr, _ netip.Addr, agen
 		return bmp.LookupResult{}, err
 	}
 	return r, nil
+}
+
+// LookupRoutes is not supported by the BioRIS provider
+func (p *Provider) LookupRoutes(_ netip.Addr) ([]provider.LookupResult, error) {
+	return nil, errNotSupported
 }
 
 // chooseRouter selects the router ID best suited for the given agent ip. It
