@@ -11,6 +11,10 @@ import (
 	"net/netip"
 	"time"
 
+	"github.com/benbjohnson/clock"
+
+	"akvorado/common/daemon"
+	"akvorado/common/httpserver"
 	"akvorado/common/reporter"
 	"akvorado/inlet/routing/provider"
 )
@@ -18,6 +22,7 @@ import (
 // Component represents the metadata compomenent.
 type Component struct {
 	r         *reporter.Reporter
+	d         *Dependencies
 	provider  provider.Provider
 	metrics   metrics
 	config    Configuration
@@ -25,18 +30,23 @@ type Component struct {
 }
 
 // Dependencies define the dependencies of the metadata component.
-type Dependencies = provider.Dependencies
+type Dependencies struct {
+	Daemon daemon.Component
+	Clock  clock.Clock
+	HTTP   *httpserver.Component
+}
 
 // New creates a new metadata component.
 func New(r *reporter.Reporter, configuration Configuration, dependencies Dependencies) (*Component, error) {
 	c := Component{
 		r:         r,
+		d:         &dependencies,
 		config:    configuration,
 		errLogger: r.Sample(reporter.BurstSampler(time.Minute, 3)),
 	}
 	c.initMetrics()
 	// Initialize the provider
-	selectedProvider, err := configuration.Provider.Config.New(r, dependencies)
+	selectedProvider, err := configuration.Provider.Config.New(r, provider.Dependencies{dependencies.Daemon, dependencies.Clock})
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +63,8 @@ func (c *Component) Start() error {
 			return err
 		}
 	}
+
+	c.d.HTTP.GinRouter.GET("/api/v0/inlet/routes", c.RoutesHTTPHandler)
 	return nil
 }
 
