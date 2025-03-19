@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"akvorado/common/daemon"
+	"akvorado/common/httpserver"
 	"akvorado/common/reporter"
 	"akvorado/inlet/routing/provider/bmp"
 )
@@ -23,7 +24,7 @@ func NewMock(t *testing.T, r *reporter.Reporter) *Component {
 	config := DefaultConfiguration()
 	config.Provider.Config = bmpConfigP
 	c, err := New(r, config, Dependencies{
-		Daemon: daemon.NewMock(t),
+		Daemon: daemon.NewMock(t), HTTP: httpserver.NewMock(t, r),
 	})
 	if err != nil {
 		t.Fatalf("New() error:\n%+v", err)
