@@ -91,12 +91,12 @@ func (configuration Configuration) New(r *reporter.Reporter, put func(provider.U
 }
 
 // Query queries exporter to get information through SNMP.
-func (p *Provider) Query(ctx context.Context, query *provider.BatchQuery) error {
+func (p *Provider) Query(ctx context.Context, query provider.BatchQuery) (provider.BatchQuery, error) {
 	// Avoid querying too much exporters with errors
 	agentIP, ok := p.config.Agents[query.ExporterIP]
 	if !ok {
 		agentIP = query.ExporterIP
 	}
 	agentPort := p.config.Ports.LookupOrDefault(query.ExporterIP, 161)
-	return p.Poll(ctx, query.ExporterIP, agentIP, agentPort, query.IfIndexes, p.put)
+	return provider.BatchQuery{}, p.Poll(ctx, query.ExporterIP, agentIP, agentPort, query.IfIndexes, p.put)
 }

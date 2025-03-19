@@ -48,16 +48,16 @@ func (configuration Configuration) New(r *reporter.Reporter, put func(provider.U
 }
 
 // Query queries static configuration.
-func (p *Provider) Query(_ context.Context, query *provider.BatchQuery) error {
+func (p *Provider) Query(_ context.Context, query provider.BatchQuery) (provider.BatchQuery, error) {
 	exporter, ok := p.exporters.Load().Lookup(query.ExporterIP)
 	if !ok {
-		return provider.ErrSkipProvider
+		return query, provider.ErrSkipProvider
 	}
 	var skippedIfIndexes uint
 	for _, ifIndex := range query.IfIndexes {
 		iface, ok := exporter.IfIndexes[ifIndex]
 		if !ok {
-			if exporter.Default.Name == "" {
+			if exporter.SkipMissingInterfaces {
 				query.IfIndexes[skippedIfIndexes] = ifIndex
 				skippedIfIndexes++
 				continue
@@ -76,8 +76,7 @@ func (p *Provider) Query(_ context.Context, query *provider.BatchQuery) error {
 		})
 	}
 	if skippedIfIndexes > 0 {
-		query.IfIndexes = query.IfIndexes[:skippedIfIndexes]
-		return provider.ErrSkipProvider
+		return provider.BatchQuery{ExporterIP: query.ExporterIP, IfIndexes: query.IfIndexes[:skippedIfIndexes]}, provider.ErrSkipProvider
 	}
-	return nil
+	return provider.BatchQuery{}, nil
 }

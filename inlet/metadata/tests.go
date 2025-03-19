@@ -23,7 +23,7 @@ type mockProvider struct {
 }
 
 // Query query the mock provider for a value.
-func (mp mockProvider) Query(_ context.Context, query provider.BatchQuery) error {
+func (mp mockProvider) Query(_ context.Context, query provider.BatchQuery) (provider.BatchQuery, error) {
 	for _, ifIndex := range query.IfIndexes {
 		answer := provider.Answer{
 			Exporter: provider.Exporter{
@@ -57,7 +57,7 @@ func (mp mockProvider) Query(_ context.Context, query provider.BatchQuery) error
 		}
 		mp.put(provider.Update{Query: provider.Query{ExporterIP: query.ExporterIP, IfIndex: ifIndex}, Answer: answer})
 	}
-	return nil
+	return provider.BatchQuery{}, nil
 }
 
 // mockProviderConfiguration is the configuration for the mock provider.
